@@ -10,3 +10,8 @@ tokio-tungstenite = "0.18.0"
 tokio = { version = "1.24.1", features = ["macros", "rt-multi-thread"] }
 futures-util = { version = "0.3.25", features = ["sink", "std"] }
 futures-channel = "0.3.25"
+
+## Parsing utilities
+serde_json = "1.0.93"
+serde = "1.0.152"
+serde_derive = "1.0.152"
