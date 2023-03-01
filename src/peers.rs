@@ -1,8 +1,9 @@
 /* Imports */
 use futures_channel::mpsc::UnboundedSender;
+use tokio::sync::{Mutex, MutexGuard};
 use tokio_tungstenite::tungstenite::Message;
 use std::{
-    sync::{ Arc, Mutex, MutexGuard },
+    sync::Arc,
     collections::HashMap,
     net::SocketAddr
 };
@@ -25,10 +26,7 @@ impl Peers {
     }
 
     /// Try locking the peer map and getting inner values (mutex)
-    pub fn lock(&self) -> Result<MutexGuard<PeerMap>, ()> {
-        match self.0.lock() {
-            Ok(e) => Ok(e),
-            Err(_) => return Err(())
-        }
+    pub async fn lock(&self) -> MutexGuard<PeerMap> {
+        self.0.lock().await
     }
 }
