@@ -10,7 +10,7 @@ pub struct Request<'a> {
     peer: SocketAddr,
 
     /// All the peers connected to this server
-    peers: PeerMap,
+    peers: &'a PeerMap,
 
     /// The request data which was provided client-side
     data: &'a String,
@@ -19,7 +19,7 @@ pub struct Request<'a> {
 /* Method impls */
 impl<'a> Request<'a> {
     /// Constructor
-    pub fn new(peer: SocketAddr, peers: PeerMap, data: &'a String) -> Self {
+    pub fn new(peer: SocketAddr, peers: &'a PeerMap, data: &'a String) -> Self {
         Self { peer, peers, data }
     }
 
