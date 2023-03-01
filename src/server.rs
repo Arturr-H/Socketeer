@@ -1,6 +1,6 @@
 /* Imports */
-use std::collections::HashMap;
-use tokio::net::TcpListener;
+use std::{collections::HashMap, sync::Arc};
+use tokio::{ net::TcpListener, sync::Mutex };
 use crate::{
     peers::Peers,
     request::Request,
@@ -29,7 +29,7 @@ pub struct Server {
 impl Server {
     /// Construct a new server struct
     pub fn new() -> Self {
-        Self { address: None, port: None, endpoints: HashMap::new(), peers: Peers::new() }
+        Self { address: None, port: None, endpoints: HashMap::new(), peers: Peers::new(), data: Arc::new(Mutex::new(0usize)) }
     }
 
     /// Create a new websocket endpoint
@@ -49,7 +49,15 @@ impl Server {
 
         /* Incoming requests */
         while let Ok((stream, addr)) = server.accept().await {
-            tokio::spawn(handle_connection(self.endpoints.clone(), self.peers.clone(), stream, addr));
+            tokio::spawn(
+                handle_connection(
+                    self.data.clone(), 
+                    self.endpoints.clone(), 
+                    self.peers.clone(),
+                    stream, 
+                    addr
+                )
+            );
         }
     }
 
