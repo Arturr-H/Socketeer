@@ -25,14 +25,32 @@ impl<'a> Request<'a> {
 
     /* Getters */
     /// Which peer is requesting this endpoint?
-    pub fn peer(&self) -> &SocketAddr { &self.peer }
-
+    pub fn peer(&self) -> SocketAddr { self.peer }
 
     /// All the peers connected to this server
     pub fn peers(&self) -> &PeerMap { &&self.peers }
 
     /// The request data which was provided client-side
     /// 
-    /// `T`: Is the struct that we want to recieve from client side
+    /// `T`: Is the struct that we want to recieve from client side.
+    /// That struct has to implement `serde::Deserialize`.
+    /// 
+    /// ## Examples
+    /// use serde::Deserialize;
+    /// 
+    /// ```
+    /// #[derive(Deserialize)]
+    /// struct ClientData {
+    ///     message: String,
+    ///     id: usize
+    /// }
+    /// 
+    /// /* Endpoint function */
+    /// fn some_endpoint(req: Request) -> Response {
+    ///     let data = req.data::<ClientData>().unwrap();
+    ///     
+    ///     Response::json("Recieved data!").to_origin(req.peer())
+    /// }
+    /// ```
     pub fn data<T: Deserialize<'a>>(&self) -> Option<T> { serde_json::from_str::<T>(&self.data).ok() }
 }
