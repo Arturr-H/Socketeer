@@ -1,5 +1,5 @@
 /* Imports */
-use crate::{ peers::Peers, request::RequestData };
+use crate::{ peers::Peers, request::Request, server::EndpointFunction };
 use std::{net::SocketAddr, collections::HashMap};
 use futures_channel::mpsc::unbounded;
 use futures_util::{ future, pin_mut, stream::TryStreamExt, StreamExt };
@@ -17,7 +17,7 @@ struct RequestType {
 
 /* Main event handler */
 pub async fn handle_connection(
-    endpoints: HashMap<String, Box<fn(RequestData) -> ()>>,
+    endpoints: HashMap<String, Box<EndpointFunction>>,
     peers: Peers,
     raw_stream: TcpStream,
     addr: SocketAddr
@@ -45,7 +45,7 @@ pub async fn handle_connection(
                 /* Try parse request type */
                 match serde_json::from_str::<RequestType>(text) {
                     Ok(e) => {
-                        find_caller(endpoints.clone(), e._type, RequestData::new(addr, peers.clone(), text));
+                        find_caller(endpoints.clone(), e._type, Request::new(addr, peers.clone(), text));
                         return future::ok(())
                     },
                     Err(_) => return future::ok(())
@@ -72,9 +72,9 @@ pub async fn handle_connection(
 
 /* Find what function to call */
 fn find_caller(
-    endpoints: HashMap<String, Box<fn(RequestData) -> ()>>,
+    endpoints: HashMap<String, Box<EndpointFunction>>,
     _type: String,
-    request_data: RequestData
+    request_data: Request
 ) -> () {
     for (name, call) in endpoints.iter() {
         if name.to_lowercase() == _type.to_lowercase() {
