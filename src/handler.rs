@@ -1,6 +1,6 @@
 /* Imports */
-use crate::{ peers::Peers, request::Request, server::EndpointFunction };
-use std::{net::SocketAddr, collections::HashMap};
+use crate::{ peers::{Peers, PeerMap}, request::Request, server::EndpointFunction, response::Response };
+use std::{ net::SocketAddr, collections::HashMap, any::Any, sync::Arc };
 use futures_channel::mpsc::unbounded;
 use futures_util::{ future, pin_mut, stream::TryStreamExt, StreamExt };
 
@@ -20,8 +20,9 @@ pub async fn handle_connection(
     endpoints: HashMap<String, Box<EndpointFunction>>,
     peers: Peers,
     raw_stream: TcpStream,
-    addr: SocketAddr
+    addr: SocketAddr,
 ) {
+    let peer_map = &mut peers.lock().await;
     let ws_stream = match tokio_tungstenite::accept_async(raw_stream).await {
         Ok(e) => e,
         Err(_) => return
@@ -29,30 +30,33 @@ pub async fn handle_connection(
 
     /* Insert to peers */
     let (tx, rx) = unbounded();
-    match peers.lock() { Ok(e) => e, Err(_) => return }.insert(addr, tx);
+    peer_map.insert(addr, tx);
     let (outgoing, incoming) = ws_stream.split();
 
     /* Message loop */
     let broadcast_incoming = incoming.try_for_each(|data| {
-        let peers = match peers.lock() {
-            Ok(e) => e,
-            Err(_) => return future::ok(())
-        };
-
         match &data {
             Message::Text(text) => {
-
                 /* Try parse request type */
                 match serde_json::from_str::<RequestType>(text) {
                     Ok(e) => {
-                        find_caller(endpoints.clone(), e._type, Request::new(addr, peers.clone(), text));
-                        return future::ok(())
+                        let peer_map = peer_map.clone();
+                        match find_caller(endpoints.clone(), e._type, Request::new(addr, &peer_map, text)) {
+                            Some(e) => {
+                                e.respond(peer_map);
+
+                                future::ok(())
+                            },
+
+                            /* 404 equivalent */
+                            None => future::ok(())
+                        }
                     },
-                    Err(_) => return future::ok(())
-                };
+                    Err(_) => future::ok(())
+                }
             },
-            _ => return future::ok(())
-        };
+            _ => future::ok(())
+        }
     });
 
 
@@ -64,10 +68,7 @@ pub async fn handle_connection(
     future::select(broadcast_incoming, receive_from_others).await;
     
     /* Remove peer */
-    match peers.lock() {
-        Ok(e) => e,
-        Err(_) => return
-    }.remove(&addr);
+    peers.lock().await.remove(&addr);
 }
 
 /* Find what function to call */
@@ -75,11 +76,12 @@ fn find_caller(
     endpoints: HashMap<String, Box<EndpointFunction>>,
     _type: String,
     request_data: Request
-) -> () {
+) -> Option<Response> {
     for (name, call) in endpoints.iter() {
         if name.to_lowercase() == _type.to_lowercase() {
-            call(request_data);
-            break;
+            return Some(call(request_data));
         }
     }
+
+    None
 }
