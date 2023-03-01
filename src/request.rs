@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::peers::{ Peers, PeerMap };
 
 /* Main */
-pub struct RequestData<'a> {
+pub struct Request<'a> {
 
     /// Which peer is requesting this endpoint?
     peer: SocketAddr,
@@ -17,7 +17,7 @@ pub struct RequestData<'a> {
 }
 
 /* Method impls */
-impl<'a> RequestData<'a> {
+impl<'a> Request<'a> {
     /// Constructor
     pub fn new(peer: SocketAddr, peers: PeerMap, data: &'a String) -> Self {
         Self { peer, peers, data }
