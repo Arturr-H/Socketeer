@@ -7,7 +7,7 @@ edition = "2021"
 
 ## Websocket handling
 tokio-tungstenite = "0.18.0"
-tokio = { version = "1.24.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.24.1", features = ["macros", "rt-multi-thread", "sync"] }
 futures-util = { version = "0.3.25", features = ["sink", "std"] }
 futures-channel = "0.3.25"
 
