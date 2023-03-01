@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-
 /* Imports */
+use std::collections::HashMap;
 use tokio::net::TcpListener;
 use crate::{
     peers::Peers,
-    request::RequestData,
-    response::ServerResponse, handler::handle_connection
+    request::Request,
+    response::Response, handler::handle_connection
 };
 
 /* Types */
-pub type Response = Box<dyn ServerResponse>;
+pub type EndpointFunction = fn(Request) -> Response;
 
 /* Main */
 pub struct Server {
@@ -20,7 +19,7 @@ pub struct Server {
     port: Option<usize>,
 
     /// Server endpoints
-    endpoints: HashMap<String, Box<fn(RequestData) -> ()>>,
+    endpoints: HashMap<String, Box<EndpointFunction>>,
 
     /// All the peers (requests) are stored in here
     peers: Peers,
@@ -34,7 +33,7 @@ impl Server {
     }
 
     /// Create a new websocket endpoint
-    pub fn endpoint(&mut self, name: &str, func: fn(RequestData) -> ()) -> &mut Self {
+    pub fn endpoint(&mut self, name: &str, func: EndpointFunction) -> &mut Self {
         self.endpoints.insert(name.to_owned(), Box::new(func));
         self
     }
