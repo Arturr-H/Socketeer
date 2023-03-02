@@ -17,6 +17,7 @@ struct RequestType {
 
 /* Main event handler */
 pub async fn handle_connection(
+    global: Arc<tokio::sync::Mutex<(dyn Any + Send)>>,
     endpoints: HashMap<String, Box<EndpointFunction>>,
     peers: Peers,
     raw_stream: TcpStream,
@@ -41,7 +42,16 @@ pub async fn handle_connection(
                 match serde_json::from_str::<RequestType>(text) {
                     Ok(e) => {
                         let peer_map = peer_map.clone();
-                        match find_caller(endpoints.clone(), e._type, Request::new(addr, &peer_map, text)) {
+                        match find_caller(
+                            endpoints.clone(),
+                            e._type,
+                            Request::new(
+                                addr, 
+                                &peer_map,
+                                text,
+                                global.clone()
+                            )
+                        ) {
                             Some(e) => {
                                 e.respond(peer_map);
 
