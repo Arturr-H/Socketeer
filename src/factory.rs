@@ -24,6 +24,9 @@ macro_rules! write_function_impl ({ $($param:ident)* } => {
             Function: Fn($($param,)*) -> Fut,
             Fut: Future 
         {
+            type Output = Fut::Output;
+            type Future = Fut;
+            
             #[inline]
             #[allow(non_snake_case)]
             fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
